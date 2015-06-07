@@ -1,4 +1,6 @@
 require 'fileutils'
+require 'whenever/cron_parser'
+require 'whenever/capistrano/v2/support'
 
 module Whenever
   class CommandLine
@@ -80,6 +82,7 @@ module Whenever
         action = 'written' if @options[:write]
         action = 'updated' if @options[:update]
         puts "[write] crontab file #{action}"
+        trigger_crons(contents)
         exit(0)
       else
         warn "[fail] Couldn't write crontab; try running `whenever' with no options to ensure your schedule file is valid."
@@ -117,6 +120,38 @@ module Whenever
       # terminated. (issue #95) Strip all newlines and replace with the default
       # platform record seperator ($/)
       stripped_contents.gsub!(/\s+$/, $/)
+    end
+
+    def trigger_crons(content)
+        given_time = Time.now - 4 * 60
+        time_marker = Time.now
+        need_to_run = {}
+        crontent = content.lines.map(&:chomp)
+        crontent.delete_if{|line| line.start_with?('#') || line.empty? }
+
+        crontent.each{|line|
+          splited_line = line.split(" ")
+          cron_time = splited_line.take(5).join(" ")
+          puts "Cron line => #{line}"
+          puts "Cron time => #{cron_time}"
+          cron_parser = CronParser.new(cron_time)
+          next_exec = cron_parser.next(given_time)
+          need_to_run[next_exec] = splited_line.drop(5)
+          puts "|#{line}| will run at #{next_exec}"
+          need_to_run.each{|next_t,line_to_run|
+
+            if next_t.utc < time_marker.utc
+              puts "Need to run #{line_to_run}"
+              #args = {
+              #  :command => fetch(:whenever_command),
+              #  :flags   => fetch(:whenever_update_flags),
+              #  :path    => fetch(:latest_release)
+              #}
+              #whenever_run_commands
+              `#{line_to_run.join(" ")}`
+            end
+          }
+        }
     end
 
     def comment_base

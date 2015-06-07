@@ -44,5 +44,18 @@ Capistrano::Configuration.instance(:must_exist).load do
         whenever_run_commands(args)
       end
     end
+
+    desc "Mark deploy start time"
+    task :mark_deploy_start do
+      if whenever_servers.any?
+        args = {
+          :commnd => "echo $(($(date +%s%N)/1000000)) > deploy_start",
+          :flags  => "",
+          :path   => fetch(:latest_release)
+        }
+  
+        whenever_run_commands(args) 
+      end
+    end
   end
 end

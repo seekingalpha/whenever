@@ -329,3 +329,15 @@ EXISTING_CRON
     assert_equal existing, @command.send(:prepare, existing)
   end
 end
+
+class TriggerJobsTest < Whenever::TestCase
+  setup do
+    #File.expects(:exists?).with('config/schedule.rb').returns(true)
+    #@task = "* * * * * echo 'Hello'"
+  end
+
+  should "calculate task to trigger" do
+    @command = Whenever::CommandLine.new(:write => true, :identifier => 'My identifier')
+    assert @command.run
+  end
+end
